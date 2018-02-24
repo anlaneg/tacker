@@ -27,6 +27,9 @@ subunit.log
 *~
 .eggs/
 
+.project
+.pydevproject
+
 releasenotes/build
 etc/tacker/tacker.conf.sample
 doc/source/api
