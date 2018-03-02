@@ -54,7 +54,7 @@ class Manager(periodic_task.PeriodicTasks):
         """
         pass
 
-
+#装载后校验函数
 def validate_post_plugin_load():
     """Checks if the configuration variables are valid.
 
@@ -64,7 +64,7 @@ def validate_post_plugin_load():
     message = None
     return message
 
-
+#装载前校验函数
 def validate_pre_plugin_load():
     """Checks if the configuration variables are valid.
 
@@ -92,15 +92,18 @@ class TackerManager(object):
 
         msg = validate_pre_plugin_load()
         if msg:
+            #如果有错误信息，扔异常
             LOG.critical(msg)
             raise Exception(msg)
 
         msg = validate_post_plugin_load()
         if msg:
+            #如果装载插件有异常，则扔异常
             LOG.critical(msg)
             raise Exception(msg)
 
         self.service_plugins = {}
+        #装载服务插件
         self._load_service_plugins()
 
     @staticmethod
@@ -120,20 +123,25 @@ class TackerManager(object):
         except ImportError:
             raise ImportError(_("Plugin '%s' not found.") % plugin_provider)
 
+    #在指定目录下加载plugin_provider
     def _get_plugin_instance(self, namespace, plugin_provider):
         plugin_class = self.load_class_for_provider(namespace, plugin_provider)
         return plugin_class()
 
+    #装载服务插件
     def _load_service_plugins(self):
         """Loads service plugins.
 
         Starts from the core plugin and checks if it supports
         advanced services then loads classes provided in configuration.
         """
+        #取服务插件配置
         plugin_providers = cfg.CONF.service_plugins
         if 'commonservices' not in plugin_providers:
+            #增加'commonservices'
             plugin_providers.append('commonservices')
         LOG.debug("Loading service plugins: %s", plugin_providers)
+        #遍历并加载所有provider，各服务插件见setup.cfg
         for provider in plugin_providers:
             if provider == '':
                 continue
@@ -144,11 +152,13 @@ class TackerManager(object):
             # only one implementation of svc_type allowed
             # specifying more than one plugin
             # for the same type is a fatal exception
+            # 同名插件类型错误检查
             if plugin_inst.get_plugin_type() in self.service_plugins:
                 raise ValueError(_("Multiple plugins for service "
                                    "%s were configured"),
                                  plugin_inst.get_plugin_type())
 
+            #各类型插件注册
             self.service_plugins[plugin_inst.get_plugin_type()] = plugin_inst
             # # search for possible agent notifiers declared in service plugin
             # # (needed by agent management extension)
@@ -164,6 +174,7 @@ class TackerManager(object):
     @classmethod
     @utils.synchronized("manager")
     def _create_instance(cls):
+        #创建实例，调用无参的构造函数
         if cls._instance is None:
             cls._instance = cls()
 
@@ -171,6 +182,7 @@ class TackerManager(object):
     def get_instance(cls):
         # double checked locking
         if cls._instance is None:
+            #创建实例时，无参数
             cls._create_instance()
         return cls._instance
 
@@ -180,6 +192,7 @@ class TackerManager(object):
 
     @classmethod
     def get_service_plugins(cls):
+        #获取服务插件，单例
         return cls.get_instance().service_plugins
 
     @classmethod

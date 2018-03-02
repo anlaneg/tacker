@@ -107,7 +107,7 @@ class VNFMMgmtMixin(object):
             vnf_dict, plugin=self, context=context, vnf=vnf_dict,
             kwargs=kwargs)
 
-
+#VNFM插件定义
 class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     """VNFMPlugin which supports VNFM framework.
 

@@ -56,6 +56,7 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
                      tstamp, details=""):
         try:
             with context.session.begin(subtransactions=True):
+                #创建event，并加入
                 event_db = common_services_db.Event(
                     resource_id=res_id,
                     resource_type=res_type,
@@ -73,6 +74,7 @@ class CommonServicesPluginDb(common_services.CommonServicesPluginBase,
     @log.log
     def get_event(self, context, event_id, fields=None):
         try:
+            #给出event_id获得event
             events_db = self._get_by_id(context,
                                         common_services_db.Event, event_id)
         except orm_exc.NoResultFound:

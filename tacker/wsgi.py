@@ -127,11 +127,13 @@ class Server(object):
     def __init__(self, name, threads=1000):
         # Raise the default from 8192 to accommodate large tokens
         eventlet.wsgi.MAX_HEADER_LINE = CONF.max_header_line
+        #创建GreenPool
         self.pool = eventlet.GreenPool(threads)
         self.name = name
         self._launcher = None
         self._server = None
 
+    #创建监听socket
     def _get_socket(self, host, port, backlog):
         bind_addr = (host, port)
         # TODO(dims): eventlet's green dns/socket module does not actually
@@ -149,6 +151,7 @@ class Server(object):
                           {'host': host, 'port': port})
             sys.exit(1)
 
+        #如果配置了use_ssl
         if CONF.use_ssl:
             if not os.path.exists(CONF.ssl_cert_file):
                 raise RuntimeError(_("Unable to find ssl_cert_file "
@@ -177,12 +180,14 @@ class Server(object):
                 ssl_kwargs['ca_certs'] = CONF.ssl_ca_file
                 ssl_kwargs['cert_reqs'] = ssl.CERT_REQUIRED
 
+            #创建ssl socket
             return ssl.wrap_socket(sock, **ssl_kwargs)
 
         sock = None
         retry_until = time.time() + CONF.retry_until_window
         while not sock and time.time() < retry_until:
             try:
+                #创建sock,并监听对应地址
                 sock = eventlet.listen(bind_addr,
                                        backlog=backlog,
                                        family=family)
@@ -199,6 +204,7 @@ class Server(object):
                                {'host': host,
                                 'port': port,
                                 'time': CONF.retry_until_window})
+        #设置地址重用，keepalive
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # sockets can hang around forever without keepalive
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -213,21 +219,26 @@ class Server(object):
 
     def start(self, application, port, host='0.0.0.0', workers=0):
         """Run a WSGI server with the given application."""
+        #设置服务要绑定的host,port
         self._host = host
         self._port = port
         backlog = CONF.backlog
 
+        #创建监听socket
         self._socket = self._get_socket(self._host,
                                         self._port,
                                         backlog=backlog)
         if workers < 1:
+            #仅运行一个进程
             # For the case where only one process is required.
             self._server = self.pool.spawn(self._run, application,
                                            self._socket)
+            #知会systemd，本进程已完成启动
             systemd.notify_once()
         else:
             # Minimize the cost of checking for child exit by extending the
             # wait interval past the default of 0.01s.
+            #多进程方式启动
             self._launcher = common_service.ProcessLauncher(CONF,
                                                             wait_interval=1.0)
             self._server = WorkerService(self, application)
@@ -246,6 +257,7 @@ class Server(object):
             # The process launcher does not support stop or kill.
             self._launcher.running = False
         else:
+            #知会poll停止
             self._server.kill()
 
     def wait(self):
@@ -254,10 +266,12 @@ class Server(object):
             if self._launcher:
                 self._launcher.wait()
             else:
+                #知会pool等待处理
                 self.pool.waitall()
         except KeyboardInterrupt:
             pass
 
+    #服务的入口函数
     def _run(self, application, socket):
         """Start a WSGI server in a new green thread."""
         eventlet.wsgi.server(socket, application, custom_pool=self.pool,
@@ -714,6 +728,7 @@ class Router(object):
           mapper.connect(None, "/v1.0/{path_info:.*}", controller=BlogApp())
         """
         self.map = mapper
+        #创建routes中间件
         self._router = routes.middleware.RoutesMiddleware(self._dispatch,
                                                           self.map)
 
@@ -723,6 +738,7 @@ class Router(object):
 
         If no match, return a 404.
         """
+        #self._router的__call__将被调用，在其内部，self._dispatch将被调用
         return self._router
 
     @staticmethod
@@ -736,10 +752,12 @@ class Router(object):
         """
         match = req.environ['wsgiorg.routing_args'][1]
         if not match:
+            #如果无match,报404
             language = req.best_match_language()
             msg = _('The resource could not be found.')
             msg = i18n.translate(msg, language)
             return webob.exc.HTTPNotFound(explanation=msg)
+        #有match,取match中的'controller'
         app = match['controller']
         return app
 

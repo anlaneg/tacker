@@ -794,7 +794,7 @@ RESOURCE_ATTRIBUTE_MAP = {
 
 }
 
-
+#定义Nfvo扩展类
 class Nfvo(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):

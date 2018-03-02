@@ -170,7 +170,7 @@ def change_memory_unit(mem, to):
                     MEM_UNITS[unit][to]["op"] +
                     MEM_UNITS[unit][to]["val"])
 
-
+#加载python模块
 def load_class_by_alias_or_classname(namespace, name):
     """Load class using stevedore alias or the class name
 

@@ -30,8 +30,10 @@ class DriverManager(object):
 
         drivers = {}
         for ext in manager:
+            #自每个obj中取type
             type_ = ext.obj.get_type()
             if type_ in drivers:
+                #如果type_有重复，则报错
                 msg = _("driver '%(new_driver)s' ignored because "
                         "driver '%(old_driver)s' is already "
                         "registered for driver '%(type)s'") % {
@@ -40,8 +42,10 @@ class DriverManager(object):
                             'type': type_}
                 LOG.error(msg)
                 raise SystemExit(msg)
+            #将obj注册到type中
             drivers[type_] = ext
 
+        #将drivers赋给_drivers
         self._drivers = dict((type_, ext.obj)
                              for (type_, ext) in drivers.items())
         LOG.info("Registered drivers from %(namespace)s: %(keys)s",
@@ -53,6 +57,7 @@ class DriverManager(object):
 
     def register(self, type_, driver):
         if type_ in self._drivers:
+            #如果已存在，则报错
             new_driver = self._driver_name(driver)
             old_driver = self._driver_name(self._drivers[type_])
             msg = _("can't load driver '%(new_driver)s' because "
@@ -66,11 +71,15 @@ class DriverManager(object):
         self._drivers[type_] = driver
 
     def invoke(self, type_, method_name, **kwargs):
+        #取出driver
         driver = self._drivers[type_]
+        #调用driver的method_name方法，并传入相应参数
         return getattr(driver, method_name)(**kwargs)
 
+    #支持[]符号取值
     def __getitem__(self, type_):
         return self._drivers[type_]
 
+    #支持in符号
     def __contains__(self, type_):
         return type_ in self._drivers

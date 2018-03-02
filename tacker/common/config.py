@@ -56,7 +56,7 @@ core_opts = [
                help=_("The maximum number of items returned "
                       "in a single response, value was 'infinite' "
                       "or negative integer means no limit")),
-    cfg.HostAddressOpt('host', default=utils.get_hostname(),
+    Miscellaneouscfg.HostAddressOpt('host', default=utils.get_hostname(),
                        help=_("The hostname Tacker is running on")),
 ]
 
@@ -68,6 +68,7 @@ core_cli_opts = [
                       "the agent.")),
 ]
 
+#为log注册相应选项
 logging.register_options(cfg.CONF)
 # Register the configuration options
 cfg.CONF.register_opts(core_opts)
@@ -92,7 +93,7 @@ def set_db_defaults():
 
 set_db_defaults()
 
-
+#负责解析并初始化配置
 def init(args, **kwargs):
     cfg.CONF(args=args, project='tacker',
              version='%%prog %s' % version.version_info.release_string(),
@@ -113,7 +114,7 @@ def setup_logging(conf):
     logging.setup(conf, product_name)
     LOG.info("Logging enabled!")
 
-
+#自paste配置文件将载WSGI app
 def load_paste_app(app_name):
     """Builds and returns a WSGI app from a paste config file.
 
@@ -122,14 +123,17 @@ def load_paste_app(app_name):
     :raises RuntimeError: when application cannot be loaded from config file
     """
 
+    #查找api_paste_config文件
     config_path = cfg.CONF.find_file(cfg.CONF.api_paste_config)
     if not config_path:
+        #无paste配置文件，报错
         raise cfg.ConfigFilesNotFoundError(
             config_files=[cfg.CONF.api_paste_config])
     config_path = os.path.abspath(config_path)
     LOG.info("Config paste file: %s", config_path)
 
     try:
+        #装载paste配置文件
         app = deploy.loadapp("config:%s" % config_path, name=app_name)
     except (LookupError, ImportError):
         msg = (_("Unable to load %(app_name)s from "

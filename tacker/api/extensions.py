@@ -118,6 +118,7 @@ class ExtensionDescriptor(object):
         actions = []
         return actions
 
+    #获取当前扩展依赖的扩展
     def get_request_extensions(self):
         """List of extensions.RequestException extension objects.
 
@@ -151,6 +152,9 @@ class ExtensionDescriptor(object):
         """
         return None
 
+    #extended_attributes是加载所有扩展后得到的attributes,现在某extend
+    #可能想要知道其它扩展对自已的属性的扩展，故给个机会将自已的原有的attributes进?
+    #行更新
     def update_attributes_map(self, extended_attributes,
                               extension_attrs_map=None):
         """Update attributes map for this extension.
@@ -163,6 +167,7 @@ class ExtensionDescriptor(object):
         If an extension does not implement update_attributes_map, the method
         does nothing and just return.
         """
+        #如果上层不重定义，则extension_attr_map为None，则什么也不做
         if not extension_attrs_map:
             return
 
@@ -264,14 +269,19 @@ class ExtensionMiddleware(wsgi.Middleware):
 
     def __init__(self, application,
                  ext_mgr=None):
+        #如果扩展mgr不存在，则构造
         self.ext_mgr = (ext_mgr
                         or ExtensionManager(get_extensions_path()))
         mapper = routes.Mapper()
 
         # extended resources
+        #获取所有扩展对应的资源信息，并遍历每一个资源，资源为ResourceExtension类型
+        #遍历每个资源完成url映射
         for resource in self.ext_mgr.get_resources():
+            #取资源对应的路径前缀
             path_prefix = resource.path_prefix
             if resource.parent:
+                #有父节点，则路径为父collection_name + 父成员名
                 path_prefix = (resource.path_prefix +
                                "/%s/{%s_id}" %
                                (resource.parent["collection_name"],
@@ -288,6 +298,7 @@ class ExtensionMiddleware(wsgi.Middleware):
                     submap.connect(path)
                     submap.connect("%s.:(format)" % path)
 
+            #完成此资源的映射
             mapper.resource(resource.collection, resource.collection,
                             controller=resource.controller,
                             member=resource.member_actions,
@@ -295,6 +306,7 @@ class ExtensionMiddleware(wsgi.Middleware):
                             path_prefix=path_prefix)
 
         # extended actions
+        #扩展action映射
         action_controllers = self._action_ext_controllers(application,
                                                           self.ext_mgr, mapper)
         for action in self.ext_mgr.get_actions():
@@ -310,6 +322,7 @@ class ExtensionMiddleware(wsgi.Middleware):
             controller = req_controllers[request_ext.key]
             controller.add_handler(request_ext.handler)
 
+        #这里交给对应的Controller进行处理
         self._router = routes.middleware.RoutesMiddleware(self._dispatch,
                                                           mapper)
         super(ExtensionMiddleware, self).__init__(application)
@@ -324,6 +337,7 @@ class ExtensionMiddleware(wsgi.Middleware):
     def _action_ext_controllers(self, application, ext_mgr, mapper):
         """Return a dict of ActionExtensionController-s by collection."""
         action_controllers = {}
+        #遍历所有扩展的actions
         for action in ext_mgr.get_actions():
             if action.collection not in action_controllers.keys():
                 controller = ActionExtensionController(application)
@@ -379,7 +393,7 @@ class ExtensionMiddleware(wsgi.Middleware):
         app = match['controller']
         return app
 
-
+#paste扩展中间件入口
 def extension_middleware_factory(global_config, **local_config):
     """Paste factory."""
     def _factory(app):
@@ -400,21 +414,27 @@ class ExtensionManager(object):
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
+            #传入路径，并创建相应的实例
             cls._instance = cls(get_extensions_path())
         return cls._instance
 
     def __init__(self, path):
         LOG.info('Initializing extension manager.')
+        #记录扩展路径（以‘：’分隔）
         self.path = path
+        #用于记录所有扩展
         self.extensions = {}
+        #用于装载所有扩展
         self._load_all_extensions()
         policy.reset()
 
     def get_resources(self):
         """Returns a list of ResourceExtension objects."""
         resources = []
+        #添加extension的资源扩展
         resources.append(ResourceExtension('extensions',
                                            ExtensionController(self)))
+        #遍历所有已加载扩展，调用扩展的get_resources
         for ext in self.extensions.values():
             try:
                 resources.extend(ext.get_resources())
@@ -422,8 +442,10 @@ class ExtensionManager(object):
                 # NOTE(dprince): Extension aren't required to have resource
                 # extensions
                 pass
+        #返回当前扩展的所有资源
         return resources
 
+    #收集所有extension的action
     def get_actions(self):
         """Returns a list of ActionExtension objects."""
         actions = []
@@ -448,6 +470,7 @@ class ExtensionManager(object):
                 pass
         return request_exts
 
+    #当装载完扩展类后，将调用本函数完成当前进程支持的所有资源列表（哪些项可配置，哪些项可查及其对应的约束条件等）
     def extend_resources(self, version, attr_map):
         """Extend resources with additional resources or attributes.
 
@@ -464,21 +487,30 @@ class ExtensionManager(object):
         # is made in a whole iteration
         while exts_to_process:
             processed_ext_count = len(processed_exts)
+            #遍历所有扩展
             for ext_name, ext in exts_to_process.items():
                 if not hasattr(ext, 'get_extended_resources'):
+                    #如果无get_extended_resources
                     del exts_to_process[ext_name]
                     continue
                 if hasattr(ext, 'update_attributes_map'):
+                    #将有update_attributes_map的加入update集合
                     update_exts.append(ext)
                 if hasattr(ext, 'get_required_extensions'):
                     # Process extension only if all required extensions
                     # have been processed already
+                    #获取ext的依赖
                     required_exts_set = set(ext.get_required_extensions())
                     if required_exts_set - processed_exts:
+                        #依赖的扩展还未加载进来，不处理，跳过
                         continue
                 try:
+                    #提取extend的资源配置列表
                     extended_attrs = ext.get_extended_resources(version)
+                    #遍历此扩展对应的资源名称及资源对应的配置属性
                     for resource, resource_attrs in extended_attrs.items():
+                        #更新attr_map，如果已经有了，就update,否则直接赋值，通过遍历所有资源，可以得到
+                        #本进程在当前加载所有扩展后，可配置的资源列表
                         if attr_map.get(resource):
                             attr_map[resource].update(resource_attrs)
                         else:
@@ -491,6 +523,7 @@ class ExtensionManager(object):
             if len(processed_exts) == processed_ext_count:
                 # Exit loop as no progress was made
                 break
+        #如果有未处理的扩展，则报错
         if exts_to_process:
             # NOTE(salv-orlando): Consider whether this error should be fatal
             LOG.error("It was impossible to process the following "
@@ -498,9 +531,11 @@ class ExtensionManager(object):
                       ','.join(exts_to_process.keys()))
 
         # Extending extensions' attributes map.
+        #如果有其它扩展对ext的attr进行了修正，则使被修正方获知些属性增添
         for ext in update_exts:
             ext.update_attributes_map(attr_map)
 
+    #确定extension接口是否均包含
     def _check_extension(self, extension):
         """Checks for required methods in extension objects."""
         try:
@@ -514,6 +549,7 @@ class ExtensionManager(object):
             return False
         return True
 
+    #自配置文件中装载所有扩展
     def _load_all_extensions(self):
         """Load extensions from the configured path.
 
@@ -524,12 +560,15 @@ class ExtensionManager(object):
         See tests/unit/extensions/foxinsocks.py for an example extension
         implementation.
         """
+        #遍历所有路径，装载路径对应的扩展
         for path in self.path.split(':'):
             if os.path.exists(path):
+                #加载扩展
                 self._load_all_extensions_from_path(path)
             else:
                 LOG.error("Extension path '%s' doesn't exist!", path)
 
+    #装载指定路径下的所有扩展
     def _load_all_extensions_from_path(self, path):
         # Sorting the extension list makes the order in which they
         # are loaded predictable across a cluster of load-balanced
@@ -537,19 +576,26 @@ class ExtensionManager(object):
         for f in sorted(os.listdir(path)):
             try:
                 LOG.debug('Loading extension file: %s', f)
+                #取python文件，并分隔模块名称及文件后缀
                 mod_name, file_ext = os.path.splitext(os.path.split(f)[-1])
                 ext_path = os.path.join(path, f)
+                #忽略掉'_'开头的文件，忽略掉非'.py'结尾的文件
                 if file_ext.lower() == '.py' and not mod_name.startswith('_'):
                     mod = imp.load_source(mod_name, ext_path)
+                    #使模块名称大小，做为扩展的class
                     ext_name = mod_name[0].upper() + mod_name[1:]
+                    #取class
                     new_ext_class = getattr(mod, ext_name, None)
                     if not new_ext_class:
+                        #未找到class,报错
                         LOG.warning('Did not find expected name '
                                     '"%(ext_name)s" in %(file)s',
                                     {'ext_name': ext_name,
                                      'file': ext_path})
                         continue
+                    #构造扩展对应的对象
                     new_ext = new_ext_class()
+                    #将构造的对象加入到
                     self.add_extension(new_ext)
             except Exception as exception:
                 LOG.warning("Extension file %(f)s wasn't loaded due to "
@@ -559,13 +605,16 @@ class ExtensionManager(object):
     def add_extension(self, ext):
         # Do nothing if the extension doesn't check out
         if not self._check_extension(ext):
+            #检查失败，退出
             return
 
         alias = ext.get_alias()
         LOG.info('Loaded extension: %s', alias)
 
         if alias in self.extensions:
+            #扩展名称存在冲突，报错
             raise exceptions.DuplicatedExtension(alias=alias)
+        #扩展加入
         self.extensions[alias] = ext
 
 
@@ -602,15 +651,19 @@ class ResourceExtension(object):
         self.parent = parent
         self.collection_actions = collection_actions
         self.member_actions = member_actions
+        #url路径前缀
         self.path_prefix = path_prefix
         self.attr_map = attr_map
 
 
 # Returns the extension paths from a config entry and the __path__
 # of tacker.extensions
+#返回扩展路径
 def get_extensions_path():
+    #取tacker的extensions路径
     paths = ':'.join(tacker.extensions.__path__)
     if cfg.CONF.api_extensions_path:
+        #如果配置了路径，则再加上配置的路径
         paths = ':'.join([cfg.CONF.api_extensions_path, paths])
 
     return paths

@@ -29,8 +29,11 @@ def build_plural_mappings(special_mappings, resource_map):
     routers -> router.
     """
     plural_mappings = {}
+    #遍历资源的每个配置项
     for plural in resource_map:
+        #在sepcial_mappings中找plural,如果未找到，返回plural截掉's'后的字符串
         singular = special_mappings.get(plural, plural[:-1])
+        #将singular加入
         plural_mappings[plural] = singular
     return plural_mappings
 
@@ -57,26 +60,33 @@ def build_resource_info(plural_mappings, resource_map, which_service,
     :param allow_bulk: True if bulk create are allowed
     """
     resources = []
+    #指明使用哪个服务插件
     if not which_service:
         which_service = constants.CORE
     action_map = action_map or {}
+    #取对应的报务插件
     plugin = manager.TackerManager.get_service_plugins()[which_service]
     for collection_name in resource_map:
+        #取资源名称
         resource_name = plural_mappings[collection_name]
+        #取资源属性
         params = resource_map.get(collection_name, {})
         if translate_name:
+            #名称规范化
             collection_name = collection_name.replace('_', '-')
         member_actions = action_map.get(resource_name, {})
+        #创建controller
         controller = base.create_resource(
             collection_name, resource_name, plugin, params,
             member_actions=member_actions,
             allow_bulk=allow_bulk,
             allow_pagination=cfg.CONF.allow_pagination,
             allow_sorting=cfg.CONF.allow_sorting)
+        #创建resource
         resource = extensions.ResourceExtension(
             collection_name,
-            controller,
-            path_prefix=constants.COMMON_PREFIXES[which_service],
+            controller,#负责此资源的controller
+            path_prefix=constants.COMMON_PREFIXES[which_service],#不同服务对应的前缀
             member_actions=member_actions,
             attr_map=params)
         resources.append(resource)

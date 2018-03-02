@@ -81,6 +81,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
     def __init__(self):
         super(NfvoPlugin, self).__init__()
         self._pool = eventlet.GreenPool()
+        #载入vim的drivers
         self._vim_drivers = driver_manager.DriverManager(
             'tacker.nfvo.vim.drivers',
             cfg.CONF.nfvo_vim.vim_drivers)
@@ -107,6 +108,7 @@ class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
         vim_obj['id'] = uuidutils.generate_uuid()
         vim_obj['status'] = 'PENDING'
         try:
+            #调用vim驱动$vim_type中的register_vim函数
             self._vim_drivers.invoke(vim_type,
                                      'register_vim',
                                      context=context,

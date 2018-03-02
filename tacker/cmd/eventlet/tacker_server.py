@@ -26,6 +26,7 @@ from oslo_service import service as common_service
 
 from tacker import _i18n
 _i18n.enable_lazy()
+#注册tracker主要的选项
 from tacker.common import config
 from tacker import service
 
@@ -35,6 +36,7 @@ oslo_i18n.install("tacker")
 
 def main():
     # the configuration will be read into the cfg.CONF global data structure
+    #完成配置文件解析
     config.init(sys.argv[1:])
     if not cfg.CONF.config_file:
         sys.exit(_("ERROR: Unable to find configuration file via the default"
@@ -42,7 +44,9 @@ def main():
                    " the '--config-file' option!"))
 
     try:
+        #创建tacker_api服务
         tacker_api = service.serve_wsgi(service.TackerApiService)
+        #启动service
         launcher = common_service.launch(cfg.CONF, tacker_api,
                                          workers=cfg.CONF.api_workers or None)
         launcher.wait()

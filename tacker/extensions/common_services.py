@@ -87,7 +87,7 @@ RESOURCE_ATTRIBUTE_MAP = {
     }
 }
 
-
+#定义Common_services扩展
 class Common_services(extensions.ExtensionDescriptor):
     @classmethod
     def get_name(cls):
@@ -112,9 +112,12 @@ class Common_services(extensions.ExtensionDescriptor):
     @classmethod
     def get_resources(cls):
         special_mappings = {}
+        #遍历生成'event'
         plural_mappings = resource_helper.build_plural_mappings(
             special_mappings, RESOURCE_ATTRIBUTE_MAP)
+        #添加到attr.PLURALS中
         attr.PLURALS.update(plural_mappings)
+        #返回本扩展对应的资源
         return resource_helper.build_resource_info(
             plural_mappings, RESOURCE_ATTRIBUTE_MAP, constants.COMMONSERVICES,
             translate_name=True)
@@ -123,10 +126,12 @@ class Common_services(extensions.ExtensionDescriptor):
     def get_plugin_interface(cls):
         return CommonServicesPluginBase
 
+    #更新自已的attribute,其它扩展可能对它进行了修改
     def update_attributes_map(self, attributes):
         super(Common_services, self).update_attributes_map(
             attributes, extension_attrs_map=RESOURCE_ATTRIBUTE_MAP)
 
+    #返回此扩展对外的属性号（给出版本，按版本返回）
     def get_extended_resources(self, version):
         version_map = {'1.0': RESOURCE_ATTRIBUTE_MAP}
         return version_map.get(version, {})

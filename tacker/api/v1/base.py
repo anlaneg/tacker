@@ -50,8 +50,10 @@ class Controller(object):
                  allow_bulk=False, member_actions=None, parent=None,
                  allow_pagination=False, allow_sorting=False):
         member_actions = member_actions or []
+        #受那个插件管理
         self._plugin = plugin
         self._collection = collection.replace('-', '_')
+        #资源名称
         self._resource = resource.replace('-', '_')
         self._attr_info = attr_info
         self._allow_bulk = allow_bulk
@@ -77,15 +79,19 @@ class Controller(object):
                 self._allow_sorting = True
 
         if parent:
+            #如果存在父节点，则生成的action名称将包含父节点部分
             self._parent_id_name = '%s_id' % parent['member_name']
             parent_part = '_%s' % parent['member_name']
         else:
             self._parent_id_name = None
             parent_part = ''
+        
+        #生成list,show action对应的名称
         self._plugin_handlers = {
             self.LIST: 'get%s_%s' % (parent_part, self._collection),
             self.SHOW: 'get%s_%s' % (parent_part, self._resource)
         }
+        #生成create,update,delete对应的action名称
         for action in [self.CREATE, self.UPDATE, self.DELETE]:
             self._plugin_handlers[action] = '%s%s_%s' % (action, parent_part,
                                                          self._resource)
@@ -339,6 +345,7 @@ class Controller(object):
             # it is then deleted
             raise
 
+    #create方法调用
     def create(self, request, body=None, **kwargs):
         """Creates a new instance of the requested entity."""
         parent_id = kwargs.get(self._parent_id_name)

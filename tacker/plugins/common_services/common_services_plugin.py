@@ -17,7 +17,7 @@
 from tacker.common import log
 from tacker.db.common_services import common_services_db_plugin
 
-
+#common服务插件定义
 class CommonServicesPlugin(common_services_db_plugin.CommonServicesPluginDb):
     """Reference plugin for COMMONSERVICES extension
 

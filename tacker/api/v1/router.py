@@ -54,7 +54,11 @@ class APIRouter(wsgi.Router):
         return cls(**local_config)
 
     def __init__(self, **local_config):
+        #创建mapper
         mapper = routes_mapper.Mapper()
+        #创建instance
         ext_mgr = extensions.ExtensionManager.get_instance()
+        #加载扩展，并处理生成扩展资源，将其记录在attributes.RESOURCE_ATTRIBUTE_MAP中
         ext_mgr.extend_resources("1.0", attributes.RESOURCE_ATTRIBUTE_MAP)
+        #完成基类的初始化，这个类实际上是用来托底的，回复404
         super(APIRouter, self).__init__(mapper)

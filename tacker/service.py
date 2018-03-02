@@ -39,6 +39,7 @@ service_opts = [
     cfg.IntOpt('periodic_interval',
                default=40,
                help=_('Seconds between running periodic tasks')),
+    #需要支持多少个工作进程来处理服务
     cfg.IntOpt('api_workers',
                default=0,
                help=_('Number of separate worker processes for service')),
@@ -72,9 +73,11 @@ class WsgiService(service.ServiceBase):
         self.app_name = app_name
         self.wsgi_app = None
 
+    #定义start调用_run_wsgi,启动服务
     def start(self):
         self.wsgi_app = _run_wsgi(self.app_name)
 
+    #等待服务结束
     def wait(self):
         if self.wsgi_app:
             self.wsgi_app.wait()
@@ -85,7 +88,7 @@ class WsgiService(service.ServiceBase):
     def reset(self):
         pass
 
-
+#定义如何创建Tacker服务
 class TackerApiService(WsgiService):
     """Class for tacker-api service."""
 
@@ -99,7 +102,7 @@ class TackerApiService(WsgiService):
         service = cls(app_name)
         return service
 
-
+#实现服务创建
 def serve_wsgi(cls):
 
     try:
@@ -111,13 +114,15 @@ def serve_wsgi(cls):
 
     return service
 
-
+#启动wsgi
 def _run_wsgi(app_name):
     app = config.load_paste_app(app_name)
     if not app:
+        #如果载入api失败，则返回None
         LOG.error('No known API applications configured.')
         return
     server = wsgi.Server("Tacker")
+    #监听并启动服务
     server.start(app, cfg.CONF.bind_port, cfg.CONF.bind_host,
                  workers=cfg.CONF.api_workers)
     # Dump all option values here after all options are parsed

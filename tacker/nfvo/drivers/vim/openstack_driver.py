@@ -103,6 +103,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         self.keystone.create_key_dir(CONF.vim_keys.openstack)
 
     def get_type(self):
+        #指明驱动类型
         return 'openstack'
 
     def get_name(self):
