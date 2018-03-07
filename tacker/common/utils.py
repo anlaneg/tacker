@@ -218,6 +218,7 @@ def deprecate_warning(what, as_of, in_favor_of=None, remove_in=1):
                                      remove_in=remove_in)
 
 
+#生成随机的资源名称
 def generate_resource_name(resource, prefix='tmpl'):
     return prefix + '-' \
         + ''.join(random.SystemRandom().choice(

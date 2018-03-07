@@ -231,6 +231,7 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
     @staticmethod
     def _mgmt_driver_name(vnf_dict):
+        #取vnf的管理驱动名称
         return vnf_dict['vnfd']['mgmt_driver']
 
     @staticmethod
@@ -251,7 +252,9 @@ class VNFMPluginDb(vnfm.VNFMPluginBase, db_base.CommonDbMixin):
 
         try:
             with context.session.begin(subtransactions=True):
+                #生成编号
                 vnfd_id = uuidutils.generate_uuid()
+                #存入数据库
                 vnfd_db = VNFD(
                     id=vnfd_id,
                     tenant_id=tenant_id,

@@ -74,7 +74,7 @@ SCALING_POLICY = 'tosca.policies.tacker.Scaling'
 def get_scaling_policy_name(action, policy_name):
     return '%s_scale_%s' % (policy_name, action)
 
-
+#负责VNF的创建，删除，更新及扩缩容
 class OpenStack(abstract_driver.DeviceAbstractDriver,
                 scale_driver.VnfScaleAbstractDriver):
     """Openstack infra driver for hosting vnfs"""
@@ -93,6 +93,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
     def get_description(self):
         return 'Openstack infra driver'
 
+    #实现vnf的创建
     @log.log
     def create(self, plugin, context, vnf, auth_attr):
         LOG.debug('vnf %s', vnf)
@@ -105,6 +106,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
         stack = self._create_stack(heatclient, tth.vnf, tth.fields)
         return stack['stack']['id']
 
+    #具体完成vnf的创建
     @log.log
     def _create_stack(self, heatclient, vnf, fields):
         if 'stack_name' not in fields:
@@ -118,6 +120,7 @@ class OpenStack(abstract_driver.DeviceAbstractDriver,
         LOG.debug('service_context: %s', vnf.get('service_context', []))
         LOG.debug('fields: %s', fields)
         LOG.debug('template: %s', fields['template'])
+        #调用heat进行创建
         stack = heatclient.create(fields)
 
         return stack

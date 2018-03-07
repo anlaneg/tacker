@@ -37,7 +37,7 @@ cfg.CONF.register_opts(OPTS, 'openwrt')
 def config_opts():
     return [('openwrt', OPTS)]
 
-
+#实现openwrt的简单配置
 class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
     def get_type(self):
         return 'openwrt'
@@ -57,6 +57,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         user = cfg.CONF.openwrt.user
         password = cfg.CONF.openwrt.password
         try:
+            #构造服务重启命令，并远程连接至mgmt_ip_address进行执行
             cmd = "uci import %s; /etc/init.d/%s restart" % (service, service)
             LOG.debug('execute command: %(cmd)s on mgmt_ip_address '
                       '%(mgmt_ip)s',
@@ -64,6 +65,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
                        'mgmt_ip': mgmt_ip_address})
             commander = cmd_executer.RemoteCommandExecutor(
                 user, password, mgmt_ip_address)
+            #执行相应的命令
             commander.execute_command(cmd, input_data=config)
         except Exception as ex:
             LOG.error("While executing command on remote "
@@ -87,13 +89,16 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
         config_yaml = yaml.safe_load(vdus_config)
         if not config_yaml:
             return
+        #遍历每个需要配置vnf，并获取其需要配置
         vdus_config_dict = config_yaml.get('vdus', {})
         for vdu, vdu_dict in vdus_config_dict.items():
             config = vdu_dict.get('config', {})
+            #获取哪些key需要配置，它的配置value是什么
             for key, conf_value in config.items():
                 KNOWN_SERVICES = ('firewall', 'network')
                 if key not in KNOWN_SERVICES:
                     continue
+                #获取哪些节点需要配置
                 mgmt_ip_address = mgmt_url.get(vdu, '')
                 if not mgmt_ip_address:
                     LOG.warning('tried to configure unknown mgmt '
@@ -104,6 +109,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
 
                 if isinstance(mgmt_ip_address, list):
                     for ip_address in mgmt_ip_address:
+                        #配置服务，key=conf_value
                         self._config_service(ip_address, key, conf_value)
                 else:
                     self._config_service(mgmt_ip_address, key, conf_value)

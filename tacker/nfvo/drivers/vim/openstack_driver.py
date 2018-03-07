@@ -87,7 +87,7 @@ CONNECTION_POINT = 'connection_points'
 def config_opts():
     return [('vim_keys', OPTS), ('vim_monitor', OPENSTACK_OPTS)]
 
-
+#通过neutron完成服务链功能，通过mistral完成工作流功能
 class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                        abstract_vnffg_driver.VnffgAbstractDriver):
     """Driver for OpenStack VIM
@@ -388,6 +388,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
 
         raise ValueError('empty match field for input flow classifier')
 
+    #利用neutron服务链功能，完成vnf间接口的绑定
     def create_chain(self, name, fc_ids, vnfs, symmetrical=False,
                      auth_attr=None):
         if not auth_attr:
@@ -407,6 +408,7 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
                 'port pair group for %s' % vnf['name']
             port_pair_group['port_pairs'] = []
             if CONNECTION_POINT not in vnf:
+                #vnf中必须有connection_point，用于指出一组端口，哪个负责ingress,哪个负责egress
                 LOG.warning("Chain creation failed due to missing "
                             "connection point info in VNF "
                             "%(vnfname)s", {'vnfname': vnf['name']})
@@ -569,6 +571,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         neutronclient_ = NeutronClient(auth_attr)
         neutronclient_.port_chain_delete(chain_id)
 
+    #Flow classifier: 其作用在于选择能够访问port-chain的流量, 只要有流量匹配到了
+    #flow classifier则会被重定向到  port-chain的第 1个端口。
+    #故分流器决定了哪些流量可以到达某个port-chain,而port-chain决定了流量如何走
     def update_flow_classifier(self, chain_id, fc, auth_attr=None):
         if not auth_attr:
             LOG.warning("auth information required for n-sfc driver")
@@ -682,7 +687,9 @@ class OpenStack_Driver(abstract_vim_driver.VimAbstractDriver,
         workflow = mistral_client.workflows.create(definition_yaml)
         return {'id': workflow[0].id, 'input': wg.get_input_dict()}
 
+    #工作流执行
     def execute_workflow(self, workflow, auth_dict=None):
+        #通过mistral完成此功能
         return self.get_mistral_client(auth_dict) \
             .executions.create(
             workflow_identifier=workflow['id'],

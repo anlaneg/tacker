@@ -42,12 +42,14 @@ class VimClient(object):
             LOG.debug('VIM id not provided. Attempting to find default '
                       'VIM information')
             try:
+                #未指定vim_id,采用默认的vim
                 vim_info = nfvo_plugin.get_default_vim(context)
             except Exception as ex:
                 LOG.debug('Fail to get default vim due to %s', ex)
                 raise nfvo.VimDefaultNotDefined()
         else:
             try:
+                #通过vim_id查找vim信息
                 vim_info = nfvo_plugin.get_vim(context, vim_id,
                                                mask_password=False)
             except Exception:

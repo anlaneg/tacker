@@ -55,7 +55,7 @@ def _log_monitor_events(context, vnf_dict, evt_details):
                              tstamp=timeutils.utcnow(),
                              details=evt_details)
 
-
+#实现vnf的监控
 class VNFMonitor(object):
     """VNF Monitor."""
 
@@ -79,6 +79,7 @@ class VNFMonitor(object):
         return cls._instance
 
     def __init__(self, boot_wait, check_intvl=None):
+        #载入监控驱动，例如ping
         self._monitor_manager = driver_manager.DriverManager(
             'tacker.tacker.monitor.drivers',
             cfg.CONF.tacker.monitor_driver)

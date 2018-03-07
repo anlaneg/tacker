@@ -62,10 +62,12 @@ class VNFMMgmtMixin(object):
 
     def __init__(self):
         super(VNFMMgmtMixin, self).__init__()
+        #实现vnf配置的管理
         self._mgmt_manager = driver_manager.DriverManager(
             'tacker.tacker.mgmt.drivers', cfg.CONF.tacker.mgmt_driver)
 
     def _invoke(self, vnf_dict, **kwargs):
+        #取调用的方法名称
         method = inspect.stack()[1][3]
         return self._mgmt_manager.invoke(
             self._mgmt_driver_name(vnf_dict), method, **kwargs)
@@ -135,12 +137,14 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         self._pool = eventlet.GreenPool()
         self.boot_wait = cfg.CONF.tacker.boot_wait
         self.vim_client = vim_client.VimClient()
+        #vnf被哪种vim进行管理，实现vnf的创建，删除，扩缩容
         self._vnf_manager = driver_manager.DriverManager(
             'tacker.tacker.vnfm.drivers',
             cfg.CONF.tacker.infra_driver)
         self._vnf_action = driver_manager.DriverManager(
             'tacker.tacker.policy.actions',
             cfg.CONF.tacker.policy_action)
+        #vnf的几种监控驱动
         self._vnf_monitor = monitor.VNFMonitor(self.boot_wait)
         self._vnf_alarm_monitor = monitor.VNFAlarmMonitor()
         self._vnf_app_monitor = monitor.VNFAppMonitor()
@@ -148,6 +152,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
     def spawn_n(self, function, *args, **kwargs):
         self._pool.spawn_n(function, *args, **kwargs)
 
+    #创建vnf数据库记录
     def create_vnfd(self, context, vnfd):
         vnfd_data = vnfd['vnfd']
         template = vnfd_data['attributes'].get('vnfd')
@@ -181,6 +186,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnfd['vnfd']['template_source'] = template_source
 
         self._parse_template_input(vnfd)
+        #写入数据库
         return super(VNFMPlugin, self).create_vnfd(
             context, vnfd)
 
@@ -333,10 +339,12 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnf_id = vnf_dict['id']
         LOG.debug('vnf_dict %s', vnf_dict)
         if driver_name == 'openstack':
+            #vim名称为openstack时
             self.mgmt_create_pre(context, vnf_dict)
             self.add_alarm_url_to_vnf(context, vnf_dict)
 
         try:
+            #完成vnf具体的创建
             instance_id = self._vnf_manager.invoke(
                 driver_name, 'create', plugin=self,
                 context=context, vnf=vnf_dict, auth_attr=vim_auth)
@@ -354,6 +362,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         vnf_dict['instance_id'] = instance_id
         return vnf_dict
 
+    #创建对应的vnf
     def create_vnf(self, context, vnf):
         vnf_info = vnf['vnf']
         name = vnf_info['name']
@@ -361,15 +370,19 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
         # if vnfd_template specified, create vnfd from template
         # create template dictionary structure same as needed in create_vnfd()
         if vnf_info.get('vnfd_template'):
+            #生成vnf名称
             vnfd_name = utils.generate_resource_name(name, 'inline')
             vnfd = {'vnfd': {'attributes': {'vnfd': vnf_info['vnfd_template']},
                              'name': vnfd_name,
                              'template_source': 'inline',
                              'service_types': [{'service_type': 'vnfd'}]}}
+            #将vnfd存入数据库，并返回其相应的id号
             vnf_info['vnfd_id'] = self.create_vnfd(context, vnfd).get('id')
 
+        #找此vnf对应的vim,及对应vim的认证方式
         infra_driver, vim_auth = self._get_infra_driver(context, vnf_info)
         if infra_driver not in self._vnf_manager:
+            #对应的vim不存在
             LOG.debug('unknown vim driver '
                       '%(infra_driver)s in %(drivers)s',
                       {'infra_driver': infra_driver,
@@ -433,6 +446,7 @@ class VNFMPlugin(vnfm_db.VNFMPluginDb, VNFMMgmtMixin):
                 driver_name, 'update_wait', plugin=self,
                 context=context, vnf_id=instance_id, auth_attr=vim_auth,
                 region_name=region_name)
+            #实现vnf配置更新
             self.mgmt_call(context, vnf_dict, kwargs)
         except exceptions.MgmtDriverException as e:
             LOG.error('VNF configuration failed')

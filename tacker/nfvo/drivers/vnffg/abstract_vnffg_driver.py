@@ -16,7 +16,7 @@ import six
 
 from tacker.api import extensions
 
-
+#服务链相关的接口，创建流分类器
 @six.add_metaclass(abc.ABCMeta)
 class VnffgAbstractDriver(extensions.PluginInterface):
 

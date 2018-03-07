@@ -46,7 +46,7 @@ class CommandResult(object):
         return "cmd: %s, stdout: %s, stderr: %s, return code: %s" \
             % (self.__cmd, self.__stdout, self.__stderr, self.__return_code)
 
-
+#采用ssh远程连接进入self.__host，并执行相应的命令
 class RemoteCommandExecutor(object):
     """Class to execute a command on remote location"""
     def __init__(self, user, password, host, timeout=10):
@@ -77,6 +77,7 @@ class RemoteCommandExecutor(object):
         self.__ssh.close()
         LOG.debug("Connection close")
 
+    #在ssh连接进去的情况下，执行cmd
     def execute_command(self, cmd, input_data=None):
         try:
             stdin, stdout, stderr = self.__ssh.exec_command(cmd)

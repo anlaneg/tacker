@@ -56,7 +56,7 @@ MISTRAL_RETRY_WAIT = 6
 def config_opts():
     return [('nfvo_vim', NfvoPlugin.OPTS)]
 
-
+#实现nfv的vim注册，服务链功能
 class NfvoPlugin(nfvo_db_plugin.NfvoPluginDb, vnffg_db.VnffgPluginDbMixin,
                  ns_db.NSPluginDb):
     """NFVO reference plugin for NFVO extension
