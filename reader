@@ -1,0 +1,20 @@
+开源NFV管理器 - OpenStack Tacker介绍 - 1. NFV和Tacker介绍和主要功能
+http://blog.csdn.net/bc_vnetwork/article/details/51463518
+
+开源NFV管理器 - OpenStack Tacker介绍 - 2. Tacker DevStack安装配置和操作
+http://blog.csdn.net/bc_vnetwork/article/details/51479684
+
+开源NFV管理器 - OpenStack Tacker介绍 - 3. Tacker主要驱动作用介绍
+http://blog.csdn.net/bc_vnetwork/article/details/51479966
+
+
+Tacker工作流程
+
+第一步：Tacker根据BSS/OSS需求从服务目录选出相应的服务项目，如vRouter。
+第二步：Tacker把具体的 VNFD推送给 OpenStack Heat 来生成VDU （Virtual Deployment Unit，对应含VNF要求的 VM部署单元）。
+第三步：用Heat来启动生成具体的VM实例，如图下方的 VNF FWaaS，VNF vRouter等。
+第四步: （在图中部）用 Mgmt Driver （管理驱动）来配置 VMs，通常会通过厂商EMS（如大家看到的 "Vendor Y Manager"），或者是SSH这样的简单手段。
+第五步：SFC（Service Function Chain 服务功能链）的执行实现。这里例子用的是ODL 控制器，配合IETF的NSH（Network Service Header，网络服务包头）来实现服务链的执行。 
+NSH通过描述数据面的Header来沿着网络服务路径（Service Path）承载网络服务信息，意在实现与传输独立的“服务面”（Service Plane），可以与VXLAN，MPLS, UDP等传输封装协议配合。
+在NSH当前开源实现中可以支持OVS数据面（VXLAN）和ODL的控制面。细节这里不展开了，大家可以关注IETF NSH标准和ODL，OVS相关内容。
+第六步： 监控VNF健康/可用性availability状况，出现问题是自动治愈回复（重新生成VNF，保证业务连续性）。
