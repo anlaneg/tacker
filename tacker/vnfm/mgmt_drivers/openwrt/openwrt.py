@@ -28,8 +28,8 @@ from tacker.vnfm.mgmt_drivers import constants as mgmt_constants
 
 LOG = logging.getLogger(__name__)
 OPTS = [
-    cfg.StrOpt('user', default='root', help=_('user name to login openwrt')),
-    cfg.StrOpt('password', default='', help=_('password to login openwrt')),
+    cfg.StrOpt('user', default='root', help=_('User name to login openwrt')),
+    cfg.StrOpt('password', default='', help=_('Password to login openwrt')),
 ]
 cfg.CONF.register_opts(OPTS, 'openwrt')
 
@@ -56,9 +56,12 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
     def _config_service(self, mgmt_ip_address, service, config):
         user = cfg.CONF.openwrt.user
         password = cfg.CONF.openwrt.password
+        package = service
+        if service == "dhcp":
+            package = "dnsmasq"
         try:
             #构造服务重启命令，并远程连接至mgmt_ip_address进行执行
-            cmd = "uci import %s; /etc/init.d/%s restart" % (service, service)
+            cmd = "uci import %s; /etc/init.d/%s restart" % (service, package)
             LOG.debug('execute command: %(cmd)s on mgmt_ip_address '
                       '%(mgmt_ip)s',
                       {'cmd': cmd,
@@ -95,7 +98,7 @@ class DeviceMgmtOpenWRT(abstract_driver.DeviceMGMTAbstractDriver):
             config = vdu_dict.get('config', {})
             #获取哪些key需要配置，它的配置value是什么
             for key, conf_value in config.items():
-                KNOWN_SERVICES = ('firewall', 'network')
+                KNOWN_SERVICES = ('firewall', 'network', 'dhcp', 'qos')
                 if key not in KNOWN_SERVICES:
                     continue
                 #获取哪些节点需要配置
